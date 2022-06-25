@@ -1,45 +1,37 @@
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 import { GameState } from "@shared/types";
+import { SocketMessage, SocketRequest } from "@shared/message";
 
 import { socket } from "../config/socket.config";
-import { SocketMessage, SocketRequest } from "@shared/message";
+import storageUtils from "../utils/storage.utils";
 import { useAppState } from "../providers/AppStateProvider";
 import { NavBar } from "../components/NavBar";
 
-export const GamePage = () => {
-  const navigate = useNavigate();
+export const AdminPage = () => {
   const params = useParams<{ sessionId: string }>();
+  const navigate = useNavigate();
 
-  const { playerId, setUser, sessionId, setSessionId, setError } =
-    useAppState();
-
-  const location = useLocation();
+  const { setUser, setSessionId, sessionId } = useAppState();
 
   const [gameState, setGameState] = useState<GameState>();
 
   useEffect(() => {
-    if (!params.sessionId) {
+    const adminToken = storageUtils.getAdminToken();
+
+    if (!params.sessionId || !adminToken) {
       return navigate("/");
     }
 
-    if (sessionId !== params.sessionId) {
+    if (params.sessionId !== sessionId) {
       setSessionId(params.sessionId);
     }
 
-    if (!sessionId) return;
-
-    if (playerId) {
-      socket.emit(SocketRequest.REJOIN, { sessionId, playerId });
-    } else if ((location.state as any)?.playerName) {
-      socket.emit(SocketRequest.JOIN, {
-        sessionId,
-        playerName: (location.state as any)?.playerName,
-      });
-    } else {
-      navigate("/");
-    }
+    socket.emit(SocketRequest.ADMIN_JOIN, {
+      sessionId: params.sessionId,
+      adminToken,
+    });
 
     socket.on(SocketMessage.WELCOME, ({ user, session }) => {
       setUser(user);
@@ -48,15 +40,11 @@ export const GamePage = () => {
     });
 
     socket.on(SocketMessage.UPDATE, setGameState);
-    socket.on(SocketMessage.ERROR, (error) => {
-      setError(error);
-      navigate("/");
-    });
 
     return () => {
       socket.off(SocketMessage.UPDATE);
     };
-  }, [sessionId, params.sessionId]);
+  }, [params.sessionId]);
 
   return (
     <div>

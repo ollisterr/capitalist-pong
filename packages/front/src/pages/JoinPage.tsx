@@ -1,13 +1,16 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAppState } from "../providers/AppStateProvider";
 
 export const JoinPage = () => {
+  const navigate = useNavigate();
+
   const [gameId, setGameId] = useState("");
+  const [nickname, setNickname] = useState("");
 
   const handleSubmit: React.FormEventHandler<HTMLFormElement> = (e) => {
     e.preventDefault();
-
-    alert(gameId);
+    navigate(`/game/${gameId}`, { state: { playerName: nickname } });
   };
 
   return (
@@ -16,6 +19,14 @@ export const JoinPage = () => {
         <label>
           Game ID:
           <input value={gameId} onChange={(e) => setGameId(e.target.value)} />
+        </label>
+
+        <label>
+          Nickname:
+          <input
+            value={nickname}
+            onChange={(e) => setNickname(e.target.value)}
+          />
         </label>
 
         <button type="submit">Join</button>

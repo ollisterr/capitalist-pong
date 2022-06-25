@@ -22,7 +22,6 @@ export class Player {
       name: this.name,
       cash: this.cash,
       commodities: this.commodities,
-      investments: this.investements,
     };
   }
 

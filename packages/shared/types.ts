@@ -13,8 +13,12 @@ export type Company = keyof typeof companies;
 export type PlayerState = {
   name: string;
   cash: number;
-  investments: Partial<Record<Company, number>>;
   commodities: Commodity[];
 };
 
-export type GameState = PlayerState[];
+export type GameState = { turn: number; state: PlayerState[] };
+
+export type User = {
+  id: string;
+  name: string;
+};

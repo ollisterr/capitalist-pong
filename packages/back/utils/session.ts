@@ -1,4 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
+
+import { GameState, PlayerState } from '@shared/types';
 import { defaultPrices } from './game';
 import { Player } from './player';
 import { Prices } from './types';
@@ -22,6 +24,17 @@ export class Session {
     this.adminToken = uuidv4();
   }
 
+  get state(): GameState {
+    if (!this.turn) {
+      return { turn: 0, state: [] };
+    }
+
+    return {
+      turn: this.turn.index,
+      state: this.players.map((player): PlayerState => player.state),
+    };
+  }
+
   rejoin(socketId: string, playerId: string) {
     const player = this.getPlayerById(playerId);
 
@@ -38,8 +51,11 @@ export class Session {
     if (this.started) {
       throw new Error("Can't join a game that's already on-going");
     }
+    if (this.players.some((player) => player.name === playerName)) {
+      throw new Error('Player name is already taken');
+    }
 
-    const player = new Player(socketId, playerName);
+    const player = new Player(playerName, socketId);
     this.players.push(player);
 
     return player;
@@ -84,6 +100,6 @@ export class Session {
 
     this.turn = { player: this.players[newIndex], index: newIndex };
 
-    return this.turn.player;
+    return this.state;
   }
 }

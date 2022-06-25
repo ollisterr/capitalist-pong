@@ -1,4 +1,6 @@
-import { io } from "socket.io-client";
+import { io, Socket } from "socket.io-client";
+
+import { ServerToClientEvents, ClientToServerEvents } from "@shared/message";
 
 const PORT = 8000;
 
@@ -14,4 +16,5 @@ export const API_URL = `${
     : window.location.origin
 }:${PORT + 1}`;
 
-export const socket = io(SOCKET_URL);
+export const socket: Socket<ServerToClientEvents, ClientToServerEvents> =
+  io(SOCKET_URL);

@@ -3,7 +3,13 @@ import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
 
-import { WelcomeMessage } from '@shared/messages.types';
+import {
+  ClientToServerEvents,
+  ServerToClientEvents,
+  SocketMessage,
+  SocketRequest,
+  WelcomeMessage,
+} from '@shared/message';
 
 import { initStore } from './utils/state';
 import { invalidSession } from './utils/error';
@@ -14,7 +20,7 @@ app.use(express.json());
 
 const server: http.Server = http.createServer(app);
 
-const io: Server = require('socket.io')(server, {
+const io = new Server<ClientToServerEvents, ServerToClientEvents>(server, {
   cors: {
     origin: '*',
     methods: ['GET', 'POST'],
@@ -34,20 +40,28 @@ io.on('connection', (socket) => {
   console.info('New connection', socket.id);
   console.info('Active sessions:', Object.values(getSessions()).length);
 
-  socket.on('admin-join', ({ sessionId, adminToken }) => {
+  socket.on(SocketRequest.ADMIN_JOIN, ({ sessionId, adminToken }) => {
+    console.info('Admin with token', adminToken, 'joining to', sessionId);
+
     const session = getSession(sessionId);
 
     if (!session) {
-      return socket.emit('invalidRoom');
+      return socket.emit(SocketMessage.ERROR, 'Invalid Game ID');
     }
 
     if (adminToken === session.adminToken) {
       socket.join(sessionId);
-      socket.emit('session-update', session);
+      socket.emit(SocketMessage.WELCOME, {
+        user: {
+          id: adminToken,
+          name: 'Game Host',
+        },
+        session: { id: session.id, state: session.state },
+      });
     }
   });
 
-  socket.on('rejoin', ({ sessionId, playerId }) => {
+  socket.on(SocketRequest.REJOIN, ({ sessionId, playerId }) => {
     console.info('Existing player joining session', sessionId);
     const session = getSession(sessionId);
 
@@ -56,26 +70,32 @@ io.on('connection', (socket) => {
 
       if (!player) {
         console.error('Non-existent player');
-        return socket.emit('invalidPlayer');
+        return socket.emit(SocketMessage.ERROR, 'Invalid player name');
       }
 
       socket.join(sessionId);
 
       const welcomeMessage: WelcomeMessage = {
-        playerId: player.id,
-        state: player.state,
+        user: {
+          id: player.id,
+          name: player.name,
+        },
+        session: {
+          id: session.id,
+          state: session.state,
+        },
       };
 
       // sync current session state
-      socket.emit('welcome', welcomeMessage);
+      socket.emit(SocketMessage.WELCOME, welcomeMessage);
     } else {
       console.log('Invalid Game ID');
-      socket.emit('invalidSession');
+      socket.emit(SocketMessage.ERROR, 'Invalid Game ID');
     }
   });
 
-  socket.on('join', ({ sessionId, playerName }) => {
-    console.info('New player joining session', sessionId);
+  socket.on(SocketRequest.JOIN, ({ sessionId, playerName }) => {
+    console.info('New player', playerName, 'joining session', sessionId);
     const session = getSession(sessionId);
 
     if (session) {
@@ -83,19 +103,23 @@ io.on('connection', (socket) => {
         const player = session.join(socket.id, playerName);
         socket.join(sessionId);
 
-        const welcomeMessage: WelcomeMessage = {
-          playerId: player.id,
-          state: player.state,
-        };
-
         // sync current session state
-        socket.emit('welcome', welcomeMessage);
-      } catch (e) {
-        socket.emit('error', e);
+        socket.emit(SocketMessage.WELCOME, {
+          user: {
+            id: player.id,
+            name: player.name,
+          },
+          session: {
+            id: session.id,
+            state: session.state,
+          },
+        });
+      } catch (e: any) {
+        socket.emit(SocketMessage.ERROR, e);
       }
     } else {
       console.log('Invalid Room Code');
-      socket.emit('invalidRoom');
+      socket.emit(SocketMessage.ERROR, 'Invalid Game ID');
     }
   });
 
@@ -124,10 +148,10 @@ app.post('/create', async (req, res) => {
   }
 
   try {
-    const session = createSession(req.body.id);
+    const { id, adminToken } = createSession(req.body.id);
 
-    console.info('Created new session:', session.id);
-    res.json(session);
+    console.info('Created new session:', id);
+    res.json({ id, adminToken });
   } catch (e) {
     res
       .status(400)
@@ -145,7 +169,7 @@ app.post('/next/:sessionId', (req, res) => {
 
   const updatedState = session.nextTurn();
 
-  io.to(sessionId).emit('update', updatedState);
+  io.to(sessionId).emit(SocketMessage.UPDATE, updatedState);
 });
 
 app.listen(PORT + 1, () => {

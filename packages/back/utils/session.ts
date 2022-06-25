@@ -26,17 +26,9 @@ export class Session {
   }
 
   get state(): GameState {
-    if (!this.turn) {
-      return {
-        turn: 0,
-        prices: this.prices,
-        marketRates: this.marketRates,
-        state: [],
-      };
-    }
-
     return {
-      turn: this.turn.index,
+      started: this.started,
+      turn: this.turn?.index ?? null,
       prices: this.prices,
       marketRates: this.marketRates,
       state: this.players.map((player): PlayerState => player.state),
@@ -65,6 +57,8 @@ export class Session {
 
     const player = new Player(playerName, socketId);
     this.players.push(player);
+
+    console.log('Added new player', this.players);
 
     return player;
   }

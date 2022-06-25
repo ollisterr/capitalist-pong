@@ -1,21 +1,23 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import { GameState } from "@shared/types";
+import { Commodity, GameState } from "@shared/types";
 import { SocketMessage, SocketRequest } from "@shared/message";
 
 import { socket } from "../config/socket.config";
 import storageUtils from "../utils/storage.utils";
 import { useAppState } from "../providers/AppStateProvider";
 import { NavBar } from "../components/NavBar";
+import { Shop } from "../components/Shop";
+import { Page } from "../styles";
+import { Dashboard } from "../components/Dashboard";
 
 export const AdminPage = () => {
   const params = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
 
-  const { setUser, setSessionId, sessionId } = useAppState();
-
-  const [gameState, setGameState] = useState<GameState>();
+  const { setUser, setSessionId, sessionId, setGameState, gameState } =
+    useAppState();
 
   useEffect(() => {
     const adminToken = storageUtils.getAdminToken();
@@ -46,11 +48,19 @@ export const AdminPage = () => {
     };
   }, [params.sessionId]);
 
+  const purchase = (commodity: Commodity) => {
+    socket.emit(SocketRequest.PURCHASE, commodity);
+  };
+
+  if (!gameState) return null;
+
   return (
-    <div>
+    <Page>
       <NavBar />
-      <br />
-      {JSON.stringify(gameState) || "Ei mitään näytettävää"}
-    </div>
+
+      <Dashboard />
+
+      <Shop prices={gameState.prices} purchase={purchase} />
+    </Page>
   );
 };

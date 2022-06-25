@@ -1,5 +1,12 @@
-import { User } from "@shared/types";
-import { createContext, FC, ReactNode, useContext, useState } from "react";
+import {
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+
+import { GameState, PlayerState, User } from "@shared/types";
 import storageUtils from "../utils/storage.utils";
 
 interface AppContext {
@@ -10,15 +17,25 @@ interface AppContext {
   setSessionId: (x: string | null) => void;
   error: string | null;
   setError: (error: string | null) => void;
+  gameState: GameState | null;
+  setGameState: (state: GameState | null) => void;
+  playerState: PlayerState | null;
+  isAdmin: boolean;
 }
 
 const AppContext = createContext<AppContext | null>(null);
 
 export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [gameState, setGameState] = useState<AppContext["gameState"]>(null);
   const [sessionId, setSessionId] = useState<AppContext["sessionId"]>(null);
-
   const [error, setError] = useState<AppContext["error"]>(null);
+  const [isAdmin, setIsAdmin] = useState<AppContext["isAdmin"]>(false);
+
+  useEffect(() => {
+    const adminToken = storageUtils.getAdminToken();
+    setIsAdmin(!!adminToken);
+  }, []);
 
   const updateUser = (user: User | null) => {
     setUser(user);
@@ -32,6 +49,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
 
   const updateSession = (id: string | null) => {
     setSessionId(id);
+
     if (id) {
       storageUtils.setSession(id);
     } else {
@@ -42,6 +60,7 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
   return (
     <AppContext.Provider
       value={{
+        isAdmin,
         playerId: user?.id ?? null,
         playerName: user?.name ?? null,
         setUser: updateUser,
@@ -49,6 +68,10 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
         setSessionId: updateSession,
         error,
         setError,
+        gameState,
+        setGameState,
+        playerState:
+          gameState?.state.find((player) => player.name === user?.name) ?? null,
       }}
     >
       {children}

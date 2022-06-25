@@ -1,4 +1,4 @@
-import { GameState, User } from "./types";
+import { Commodity, GameState, User } from "./types";
 
 export type WelcomeMessage = {
   user: User;
@@ -12,6 +12,7 @@ export enum SocketRequest {
   ADMIN_JOIN = "admin-join",
   JOIN = "join",
   REJOIN = "rejoin",
+  PURCHASE = "purchase",
 }
 
 export enum SocketMessage {
@@ -40,4 +41,5 @@ export interface ClientToServerEvents {
     sessionId: string;
     playerId: string;
   }) => void;
+  [SocketRequest.PURCHASE]: (commodity: Commodity) => void;
 }

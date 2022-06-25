@@ -10,6 +10,7 @@ import {
   SocketRequest,
   WelcomeMessage,
 } from '@shared/message';
+import { Session } from 'utils/session';
 
 import { initStore } from './utils/state';
 import { invalidSession } from './utils/error';
@@ -27,6 +28,11 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents>(server, {
     credentials: false,
   },
 });
+
+const sendSessionUpdate = (session: Session) => {
+  console.info('> Sending update:', session.state);
+  io.to(session.id).emit(SocketMessage.UPDATE, session.state);
+};
 
 const { createSession, getSession, removePlayer, getSessions } = initStore();
 
@@ -88,8 +94,11 @@ io.on('connection', (socket) => {
 
       // sync current session state
       socket.emit(SocketMessage.WELCOME, welcomeMessage);
+
+      // update all players
+      sendSessionUpdate(session);
     } else {
-      console.log('Invalid Game ID');
+      console.error('Invalid Game ID', sessionId);
       socket.emit(SocketMessage.ERROR, 'Invalid Game ID');
     }
   });
@@ -114,11 +123,14 @@ io.on('connection', (socket) => {
             state: session.state,
           },
         });
+
+        // update all players
+        sendSessionUpdate(session);
       } catch (e: any) {
         socket.emit(SocketMessage.ERROR, e);
       }
     } else {
-      console.log('Invalid Room Code');
+      console.error('Invalid Session ID', sessionId);
       socket.emit(SocketMessage.ERROR, 'Invalid Game ID');
     }
   });

@@ -21,7 +21,8 @@ export type Prices = Record<Commodity, number>;
 export type MarketRates = Record<Company, number>;
 
 export type GameState = {
-  turn: number;
+  started: boolean;
+  turn: number | null;
   prices: Prices;
   marketRates: MarketRates;
   state: PlayerState[];

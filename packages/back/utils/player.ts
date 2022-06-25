@@ -1,5 +1,4 @@
-import { PlayerState } from '@shared/types';
-import { stringify } from 'querystring';
+import { Commodity, Company, PlayerState } from '@shared/types';
 import { v4 as uuidv4 } from 'uuid';
 
 export class Player {
@@ -8,8 +7,8 @@ export class Player {
   connection: string;
 
   cash = 0;
-  investements = {};
-  commodities = [];
+  investements: Partial<Record<Company, number>> = {};
+  commodities: Commodity[] = [];
 
   constructor(name: string, socketId: string) {
     this.id = uuidv4();

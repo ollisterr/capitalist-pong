@@ -16,7 +16,16 @@ export type PlayerState = {
   commodities: Commodity[];
 };
 
-export type GameState = { turn: number; state: PlayerState[] };
+export type Prices = Record<Commodity, number>;
+
+export type MarketRates = Record<Company, number>;
+
+export type GameState = {
+  turn: number;
+  prices: Prices;
+  marketRates: MarketRates;
+  state: PlayerState[];
+};
 
 export type User = {
   id: string;

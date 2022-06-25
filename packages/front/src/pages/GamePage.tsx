@@ -7,6 +7,7 @@ import { socket } from "../config/socket.config";
 import { SocketMessage, SocketRequest } from "@shared/message";
 import { useAppState } from "../providers/AppStateProvider";
 import { NavBar } from "../components/NavBar";
+import storageUtils from "../utils/storage.utils";
 
 export const GamePage = () => {
   const navigate = useNavigate();
@@ -29,6 +30,11 @@ export const GamePage = () => {
     }
 
     if (!sessionId) return;
+
+    const adminToken = storageUtils.getAdminToken();
+    if (adminToken) {
+      return navigate(`/admin/${sessionId}`);
+    }
 
     if (playerId) {
       socket.emit(SocketRequest.REJOIN, { sessionId, playerId });

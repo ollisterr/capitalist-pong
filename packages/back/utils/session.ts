@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 
-import { GameState, PlayerState } from '@shared/types';
-import { defaultPrices } from './game';
+import { Commodity, GameState, MarketRates, PlayerState } from '@shared/types';
+import { defaultMarketRates, defaultPrices } from './game';
 import { Player } from './player';
 import { Prices } from './types';
 
@@ -14,6 +14,7 @@ export class Session {
   id: string;
 
   prices: Prices = defaultPrices;
+  marketRates: MarketRates = defaultMarketRates;
   players: Player[] = [];
   turn: SessionTurn | undefined = undefined;
   started = false;
@@ -26,11 +27,18 @@ export class Session {
 
   get state(): GameState {
     if (!this.turn) {
-      return { turn: 0, state: [] };
+      return {
+        turn: 0,
+        prices: this.prices,
+        marketRates: this.marketRates,
+        state: [],
+      };
     }
 
     return {
       turn: this.turn.index,
+      prices: this.prices,
+      marketRates: this.marketRates,
       state: this.players.map((player): PlayerState => player.state),
     };
   }
@@ -76,6 +84,30 @@ export class Session {
 
   getPlayerByConnection(socketId: string) {
     return this.players.find((player) => (player.connection = socketId));
+  }
+
+  start(): GameState {
+    this.turn = { index: 0, player: this.players[0] };
+    this.started = true;
+
+    return this.state;
+  }
+
+  purchase(playerId: string, commodity: Commodity) {
+    const player = this.getPlayerById(playerId);
+
+    if (!player) {
+      throw new Error('Non-existent player');
+    }
+
+    const price = this.prices[commodity];
+
+    if (player.cash > price) {
+      player.commodities.push(commodity);
+      player.cash -= price;
+    } else {
+      throw new Error('Insufficient funds');
+    }
   }
 
   nextTurn() {

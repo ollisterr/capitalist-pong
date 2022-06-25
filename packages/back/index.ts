@@ -172,6 +172,19 @@ app.post('/next/:sessionId', (req, res) => {
   io.to(sessionId).emit(SocketMessage.UPDATE, updatedState);
 });
 
+app.post('/start/:sessionId', (req, res) => {
+  const sessionId = req.params.sessionId;
+  const session = getSession(sessionId);
+
+  if (!session) {
+    return invalidSession(res);
+  }
+
+  const updatedState = session.start();
+
+  io.to(sessionId).emit(SocketMessage.UPDATE, updatedState);
+});
+
 app.listen(PORT + 1, () => {
   console.info(`WebSocket is listening on port ${PORT}!`);
   console.info(`App is listening on port ${PORT + 1}!`);

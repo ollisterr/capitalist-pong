@@ -1,0 +1,14 @@
+{
+  "references": [
+    {
+      "path": "./packages/shared"
+    },
+    {
+      "path": "./packages/back"
+    },
+    {
+      "path": "./packages/front"
+    }
+  ],
+  "exclude": ["packages/**/tests/**", "packages/**/build/**"]
+}

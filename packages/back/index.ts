@@ -86,10 +86,15 @@ io.on('connection', (socket) => {
   });
 
   socket.on(SocketRequest.JOIN, ({ sessionId, playerName, playerId }) => {
-    console.info('Player', playerName, 'joining session', sessionId);
+    console.info(
+      'Player',
+      playerName,
+      `(${playerId})`,
+      'joining session',
+      sessionId,
+    );
 
     if (session) {
-      const sessionId = removePlayer(socket.id);
       if (sessionId) {
         socket.leave(sessionId);
       }
@@ -100,8 +105,8 @@ io.on('connection', (socket) => {
     if (
       !session ||
       (session.started &&
-        playerId &&
-        (!session.getPlayerById(playerId) || session.validateAdmin(playerId)))
+        ((playerId && !session.getPlayerById(playerId)) ||
+          !session.validateAdmin(playerId || socket.id)))
     ) {
       console.error(ErrorMessages.INVALID_SESSION, sessionId);
       return invalidSession(socket);

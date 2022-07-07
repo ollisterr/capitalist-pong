@@ -24,8 +24,6 @@ export const GamePage = () => {
   } = useAppState();
 
   useEffect(() => {
-    socket.connect();
-
     if (!params.sessionId) {
       return navigate("/");
     }
@@ -34,17 +32,19 @@ export const GamePage = () => {
       setSessionId(params.sessionId);
     }
 
-    if (!sessionId) return;
-
     if ((location.state as any)?.playerName || playerId) {
       socket.emit(SocketRequest.JOIN, {
-        sessionId,
+        sessionId: params.sessionId,
         playerName: (location.state as any)?.playerName ?? playerName,
         playerId: playerId ?? undefined,
       });
     } else {
       navigate("/");
     }
+  }, [sessionId, params.sessionId]);
+
+  useEffect(() => {
+    socket.connect();
 
     socket.on(SocketMessage.WELCOME, ({ user, session }) => {
       setUser(user);
@@ -59,7 +59,7 @@ export const GamePage = () => {
       socket.off(SocketMessage.WELCOME);
       socket.disconnect();
     };
-  }, [sessionId, params.sessionId]);
+  }, []);
 
   useEffect(() => {
     if (!sessionId) return;

@@ -38,6 +38,8 @@ export const useErrorHandling = () => {
         navigate("/");
       } else if (error.type === ErrorMessages.UNKNOWN_USER) {
         navigate("/");
+      } else if (error.type === ErrorMessages.USER_TAKEN) {
+        navigate("/");
       } else if (error.type === ErrorMessages.NOT_ALLOWED) {
         storageUtils.removeAdminToken();
         navigate("/");

@@ -81,7 +81,6 @@ export class Session {
   }
 
   rejoin(socketId: string, playerId: string, playerName?: string) {
-    console.info('Existing users:', this.players);
     const player =
       this.getPlayerById(playerId) ?? this.getPlayerByConnection(socketId);
 

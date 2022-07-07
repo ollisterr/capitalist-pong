@@ -1,25 +1,31 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import { Commodity, GameState } from "@shared/types";
+import { AdminGameState } from "@shared/types";
 import { SocketMessage, SocketRequest } from "@shared/message";
 
 import { socket } from "../config/socket.config";
 import storageUtils from "../utils/storage.utils";
 import { useAppState } from "../providers/AppStateProvider";
 import { NavBar } from "../components/NavBar";
-import { Shop } from "../components/Shop";
 import { Page } from "../styles";
-import { Dashboard } from "../components/Dashboard";
+import { ConfirmButton, Players } from "../components";
 
 export const AdminPage = () => {
   const params = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
 
-  const { setUser, setSessionId, sessionId, setGameState, gameState } =
-    useAppState();
+  const {
+    setUser,
+    setSessionId,
+    sessionId,
+    playerId,
+    setGameState,
+    gameState,
+  } = useAppState();
 
   useEffect(() => {
+    socket.connect();
     const adminToken = storageUtils.getAdminToken();
 
     if (!params.sessionId || !adminToken) {
@@ -30,37 +36,36 @@ export const AdminPage = () => {
       setSessionId(params.sessionId);
     }
 
-    socket.emit(SocketRequest.ADMIN_JOIN, {
-      sessionId: params.sessionId,
-      adminToken,
-    });
-
-    socket.on(SocketMessage.WELCOME, ({ user, session }) => {
+    socket.on(SocketMessage.ADMIN_WELCOME, ({ user, session }) => {
       setUser(user);
+      storageUtils.setAdminToken(user.id);
       setSessionId(session.id);
       setGameState(session.state);
     });
 
-    socket.on(SocketMessage.UPDATE, setGameState);
+    socket.on(SocketMessage.ADMIN_UPDATE, setGameState);
 
     return () => {
-      socket.off(SocketMessage.UPDATE);
+      socket.off(SocketMessage.ADMIN_UPDATE);
+      socket.off(SocketMessage.ADMIN_WELCOME);
+      socket.disconnect();
     };
   }, [params.sessionId]);
 
-  const purchase = (commodity: Commodity) => {
-    socket.emit(SocketRequest.PURCHASE, commodity);
-  };
+  if (!gameState) return <div>No game state</div>;
 
-  if (!gameState) return null;
+  const startGame = () => {
+    if (!playerId || !sessionId) return;
+    socket.emit(SocketRequest.START_GAME, { sessionId });
+  };
 
   return (
     <Page>
       <NavBar />
 
-      <Dashboard />
+      <Players />
 
-      <Shop prices={gameState.prices} purchase={purchase} />
+      {!gameState.started && <ConfirmButton onClick={startGame} />}
     </Page>
   );
 };

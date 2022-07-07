@@ -1,9 +1,10 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { useAppState } from "../providers/AppStateProvider";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { socket } from "../config/socket.config";
 
 export const JoinPage = () => {
   const navigate = useNavigate();
+  const {} = useParams();
 
   const [gameId, setGameId] = useState("");
   const [nickname, setNickname] = useState("");

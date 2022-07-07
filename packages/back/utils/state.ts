@@ -6,21 +6,26 @@ export const initStore = () => {
   const getSessions = () => sessions;
   const getSession = (id: string): Session | undefined => sessions[id];
 
-  const createSession = (id: string): Session => {
+  const createSession = (id: string, adminConnection: string): Session => {
     if (id in sessions) {
       throw new Error('Session with the same ID already exists');
     }
 
-    const session = new Session(id);
-    sessions[session.id] = session;
+    sessions[id] = new Session(id, adminConnection);
 
-    return session;
+    return sessions[id];
   };
 
   const removePlayer = (socketId: string) => {
-    const session = Object.values(sessions).find(
-      (session) => !!session.getPlayerByConnection(socketId),
-    );
+    const session = Object.values(sessions).find((session) => {
+      const player = session.getPlayerByConnection(socketId);
+      if (player) {
+        console.info('Removing player!', player.name, player.id);
+        return true;
+      } else {
+        return false;
+      }
+    });
     session?.removePlayerByConnection(socketId);
     return session?.id;
   };

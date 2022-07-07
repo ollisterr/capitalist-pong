@@ -16,9 +16,10 @@ ENV PORT=4000
 
 WORKDIR /app
 
-COPY --from=0 /src/build /app/build
-COPY --from=0 /src/node_modules /app/node_modules
+COPY --from=0 /src/build /app/front/build
+COPY --from=0 /src/node_modules /app/front/node_modules
 
+COPY ../shared /app/shared
 COPY package.json /app/
 
 EXPOSE 4000

@@ -16,5 +16,7 @@ export const API_URL = `${
     : window.location.origin
 }:${PORT + 1}`;
 
-export const socket: Socket<ServerToClientEvents, ClientToServerEvents> =
-  io(SOCKET_URL);
+export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(
+  SOCKET_URL,
+  { autoConnect: false }
+);

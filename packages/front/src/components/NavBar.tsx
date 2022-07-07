@@ -1,20 +1,31 @@
+import { Link } from "react-router-dom";
 import styled from "styled-components";
-import { useAppState } from "../providers/AppStateProvider";
+import { Stack } from "styled-layout";
+
+import { isAdminState, useAppState } from "../providers/AppStateProvider";
 import { Body } from "../styles";
 
 export const NavBar = () => {
-  const { playerName, playerState, isAdmin } = useAppState();
+  const { playerName, isAdmin, gameState } = useAppState();
 
   return (
     <Wrapper>
-      <Body>CapitalistPong</Body>
+      <Link to="/">
+        <Body>CapitalistPong</Body>
+      </Link>
 
-      {playerName && (
+      {gameState?.started && (
         <>
+          <Body>Now in turn: {gameState.turn}</Body>{" "}
+        </>
+      )}
+
+      {!isAdminState(gameState) && (
+        <Stack axis="x" spacing="default">
           <Body bold>{playerName}</Body>
 
-          {!isAdmin && <Body>{playerState?.cash} €</Body>}
-        </>
+          {!isAdmin && <Body>{gameState?.state.cash} €</Body>}
+        </Stack>
       )}
     </Wrapper>
   );
@@ -23,6 +34,7 @@ export const NavBar = () => {
 const Wrapper = styled.nav`
   display: grid;
   grid-template-columns: 1fr auto auto;
+  gap: ${(p) => p.theme.spacing.default};
   width: 100%;
   padding: ${(p) => p.theme.spacing.default} ${(p) => p.theme.spacing.md};
   box-shadow: ${(p) => p.theme.shadow.default};

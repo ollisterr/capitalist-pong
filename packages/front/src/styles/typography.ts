@@ -1,13 +1,18 @@
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 
-export const Title = styled.h3`
+const BaseText = styled.span<{ bold?: boolean }>`
+  font-size: 1rem;
+  ${(p) =>
+    p.bold !== undefined &&
+    css`
+      font-weight: ${p.bold ? "bold" : "normal"};
+    `}
+  color: ${(p) => p.theme.colors.black};
+`;
+
+export const Title = styled(BaseText).attrs({ as: "h3", bold: true })`
   font-size: 1.6rem;
-  font-weight: bold;
   letter-spacing: 1px;
 `;
 
-export const Body = styled.span<{ bold?: boolean }>`
-  font-size: 1rem;
-  ${(p) => p.bold && "font-weight: bold;"}
-  color: ${(p) => p.theme.colors.black};
-`;
+export const Body = styled(BaseText)``;

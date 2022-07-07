@@ -1,6 +1,13 @@
 import { v4 as uuidv4 } from 'uuid';
 
-import { Commodity, GameState, MarketRates, PlayerState } from '@shared/types';
+import {
+  AdminGameState,
+  Commodity,
+  Company,
+  GameState,
+  MarketRates,
+  Standings,
+} from '@shared/types';
 import { defaultMarketRates, defaultPrices } from './game';
 import { Player } from './player';
 import { Prices } from './types';
@@ -10,38 +17,86 @@ type SessionTurn = {
   player: Player;
 };
 
+type PublicGameState = Omit<GameState, 'state'>;
+
 export class Session {
   id: string;
-
   prices: Prices = defaultPrices;
   marketRates: MarketRates = defaultMarketRates;
   players: Player[] = [];
   turn: SessionTurn | undefined = undefined;
   started = false;
-  adminToken: string;
 
-  constructor(id: string) {
+  adminToken: string;
+  adminConnection: string;
+
+  removeQueue: Record<string, NodeJS.Timeout> = {};
+
+  constructor(id: string, adminConnection: string) {
     this.id = id;
     this.adminToken = uuidv4();
+    this.adminConnection = adminConnection;
   }
 
-  get state(): GameState {
+  get standings(): Standings {
+    return [...this.players]
+      .map((player) => ({
+        name: player.name,
+        valuation:
+          player.cash +
+          (
+            Object.entries(player.investments) as Array<[Company, number]>
+          ).reduce(
+            (total, [investment, stockCount]) =>
+              total + this.marketRates[investment] * stockCount,
+            0,
+          ),
+      }))
+      .sort((a, b) => a.valuation - b.valuation);
+  }
+
+  get state(): PublicGameState {
     return {
       started: this.started,
-      turn: this.turn?.index ?? null,
+      turn: this.turn?.player.name ?? null,
       prices: this.prices,
       marketRates: this.marketRates,
-      state: this.players.map((player): PlayerState => player.state),
+      standings: this.standings,
     };
   }
 
-  rejoin(socketId: string, playerId: string) {
-    const player = this.getPlayerById(playerId);
+  get adminState(): AdminGameState {
+    return {
+      ...this.state,
+      state: this.players,
+    };
+  }
+
+  validateAdmin(token: string) {
+    return (
+      this.adminToken === token ||
+      (!!this.adminConnection && this.adminConnection === token)
+    );
+  }
+
+  rejoin(socketId: string, playerId: string, playerName?: string) {
+    console.info('Existing users:', this.players);
+    const player =
+      this.getPlayerById(playerId) ?? this.getPlayerByConnection(socketId);
 
     if (!player) {
       return null;
     }
 
+    if (playerName) {
+      player.name = playerName;
+    }
+
+    // cancel timeout if the user was being removed
+    if (this.removeQueue[playerId]) {
+      player.offline = false;
+      clearTimeout(this.removeQueue[playerId]);
+    }
     player.updateConnection(socketId);
 
     return player;
@@ -52,7 +107,8 @@ export class Session {
       throw new Error("Can't join a game that's already on-going");
     }
     if (this.players.some((player) => player.name === playerName)) {
-      throw new Error('Player name is already taken');
+      console.info('Existing players:', this.players);
+      throw new Error('Player name is already taken: ' + playerName);
     }
 
     const player = new Player(playerName, socketId);
@@ -64,23 +120,36 @@ export class Session {
   }
 
   removePlayerById(playerId: string) {
-    this.players = this.players.filter((player) => player.id !== playerId);
+    // remove player only after five minutes of being idle
+    // and see if they rejoin
+    const player = this.getPlayerById(playerId);
+
+    if (player) {
+      player.offline = true;
+      const removeTimeout = setTimeout(() => {
+        this.players = this.players.filter((player) => player.id !== playerId);
+      }, 5 * 60 * 1000);
+      this.removeQueue[playerId] = removeTimeout;
+    }
   }
+
   removePlayerByConnection(socketId: string) {
-    this.players = this.players.filter(
-      (player) => player.connection !== socketId,
-    );
+    const player = this.getPlayerByConnection(socketId);
+    if (player) {
+      player.offline = true;
+      this.removePlayerById(player.id);
+    }
   }
 
   getPlayerById(playerId: string) {
-    return this.players.find((player) => (player.id = playerId));
+    return this.players.find((player) => player.id === playerId);
   }
 
   getPlayerByConnection(socketId: string) {
-    return this.players.find((player) => (player.connection = socketId));
+    return this.players.find((player) => player.connection === socketId);
   }
 
-  start(): GameState {
+  start(): PublicGameState {
     this.turn = { index: 0, player: this.players[0] };
     this.started = true;
 
@@ -126,6 +195,6 @@ export class Session {
 
     this.turn = { player: this.players[newIndex], index: newIndex };
 
-    return this.state;
+    return this;
   }
 }

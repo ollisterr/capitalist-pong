@@ -1,26 +1,20 @@
 import { useState } from "react";
-import { useNavigate, useRoutes } from "react-router-dom";
-import api from "../api";
-import storageUtils from "../utils/storage.utils";
+import { useNavigate } from "react-router-dom";
+
+import { SocketRequest } from "@shared/message";
+import { socket } from "../config/socket.config";
 
 export const CreatePage = () => {
   const navigate = useNavigate();
 
   const [gameId, setGameId] = useState("");
-  const [error, setError] = useState<string>();
 
   const handleSubmit: React.FormEventHandler<HTMLFormElement> = (e) => {
     e.preventDefault();
 
-    if (gameId.length > 0) {
-      api
-        .createGame(gameId)
-        .then(({ data }) => {
-          storageUtils.setAdminToken(data.adminToken);
-          storageUtils.setSession(data.id);
-          navigate(`/admin/${data.id}`);
-        })
-        .catch((e) => setError(e.message));
+    if (gameId.length > 3) {
+      navigate(`/admin/${gameId}`);
+      socket.emit(SocketRequest.CREATE, { id: gameId });
     }
   };
 
@@ -30,7 +24,6 @@ export const CreatePage = () => {
         <label>
           Game ID:
           <input value={gameId} onChange={(e) => setGameId(e.target.value)} />
-          {error && <span>{error}</span>}
         </label>
 
         <button type="submit">Submit</button>

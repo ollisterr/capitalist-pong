@@ -1,7 +1,7 @@
 import styled from "styled-components";
-import { Spacer, Stack } from "styled-layout";
+import { Spacer } from "styled-layout";
 
-import { useAppState } from "../providers/AppStateProvider";
+import { isAdminState, useAppState } from "../providers/AppStateProvider";
 import { Body, Row, Title } from "../styles";
 
 export const Players = () => {
@@ -16,11 +16,15 @@ export const Players = () => {
       <Spacer />
 
       <ListWrapper>
-        {gameState.state.length > 0 ? (
-          gameState.state.map((player, i) => (
-            <Row>
+        {gameState.standings.length > 0 ? (
+          gameState.standings.map((player, i) => (
+            <Row key={player.name}>
               <Body>{i + 1}. </Body>
               <Body bold>{player.name}</Body>
+
+              {isAdminState(gameState) &&
+                gameState.state.find((x) => player.name === x.name)
+                  ?.offline && <Body>OFFLINE</Body>}
             </Row>
           ))
         ) : (
@@ -42,7 +46,7 @@ const Wrapper = styled.div`
 
 const ListWrapper = styled.div`
   display: flex;
-  flex-direction: center;
+  flex-direction: column;
   width: 100%;
   padding: ${(p) => p.theme.spacing.default};
   padding-bottom: ${(p) => p.theme.spacing.xxl};

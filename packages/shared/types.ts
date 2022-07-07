@@ -14,17 +14,28 @@ export type PlayerState = {
   name: string;
   cash: number;
   commodities: Commodity[];
+  investments: InvestmentPortfolio;
+  offline: boolean;
 };
+
+export type InvestmentPortfolio = Record<Company, number>;
 
 export type Prices = Record<Commodity, number>;
 
 export type MarketRates = Record<Company, number>;
 
+export type Standings = Array<{ name: PlayerState["name"]; valuation: number }>;
+
 export type GameState = {
   started: boolean;
-  turn: number | null;
+  turn: string | null;
   prices: Prices;
   marketRates: MarketRates;
+  state: PlayerState;
+  standings: Standings;
+};
+
+export type AdminGameState = Omit<GameState, "state"> & {
   state: PlayerState[];
 };
 

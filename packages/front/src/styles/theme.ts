@@ -25,6 +25,7 @@ export const theme = {
     grey: "#aaa",
     lightGrey: "#ddd",
     lightestGrey: "whitesmoke",
+    success: "#32a852",
   },
   shadow: {
     sm: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);",

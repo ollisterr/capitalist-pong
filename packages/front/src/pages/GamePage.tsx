@@ -1,15 +1,14 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
-import { Commodity } from "@shared/types";
+import { ErrorMessages } from "@shared/error";
 
 import { socket } from "../config/socket.config";
 import { SocketMessage, SocketRequest } from "@shared/message";
 import { useAppState } from "../providers/AppStateProvider";
-import { NavBar } from "../components/NavBar";
 import storageUtils from "../utils/storage.utils";
-import { Shop } from "../components/Shop";
-import { Dashboard } from "../components/Dashboard";
+import { Shop, NavBar, ConfirmButton, Dashboard, Players } from "../components";
+import { GameView } from "../components/GameView";
 
 export const GamePage = () => {
   const navigate = useNavigate();
@@ -18,15 +17,18 @@ export const GamePage = () => {
 
   const {
     playerId,
+    playerName,
     setUser,
     sessionId,
     setSessionId,
-    setError,
     gameState,
     setGameState,
+    isAdmin,
   } = useAppState();
 
   useEffect(() => {
+    socket.connect();
+
     if (!params.sessionId) {
       return navigate("/");
     }
@@ -37,17 +39,11 @@ export const GamePage = () => {
 
     if (!sessionId) return;
 
-    const adminToken = storageUtils.getAdminToken();
-    if (adminToken) {
-      return navigate(`/admin/${sessionId}`);
-    }
-
-    if (playerId) {
-      socket.emit(SocketRequest.REJOIN, { sessionId, playerId });
-    } else if ((location.state as any)?.playerName) {
+    if ((location.state as any)?.playerName || playerId) {
       socket.emit(SocketRequest.JOIN, {
         sessionId,
-        playerName: (location.state as any)?.playerName,
+        playerName: (location.state as any)?.playerName ?? playerName,
+        playerId: playerId ?? undefined,
       });
     } else {
       navigate("/");
@@ -60,19 +56,21 @@ export const GamePage = () => {
     });
 
     socket.on(SocketMessage.UPDATE, setGameState);
-    socket.on(SocketMessage.ERROR, (error) => {
-      setError(error);
-      navigate("/");
-    });
 
     return () => {
       socket.off(SocketMessage.UPDATE);
+      socket.off(SocketMessage.WELCOME);
+      socket.disconnect();
     };
   }, [sessionId, params.sessionId]);
 
-  const purchase = (commodity: Commodity) => {
-    socket.emit(SocketRequest.PURCHASE, commodity);
-  };
+  useEffect(() => {
+    if (!sessionId) return;
+
+    if (isAdmin) {
+      return navigate(`/admin/${sessionId}`);
+    }
+  }, [isAdmin, sessionId]);
 
   if (!gameState) return null;
 
@@ -80,9 +78,7 @@ export const GamePage = () => {
     <div>
       <NavBar />
 
-      <Dashboard />
-
-      <Shop prices={gameState?.prices} purchase={purchase} />
+      {gameState.started ? <GameView /> : <Players />}
     </div>
   );
 };

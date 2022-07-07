@@ -13,12 +13,14 @@ export const Button = styled.button`
   font-weight: 900;
   letter-spacing: 2px;
   box-shadow: ${(p) => p.theme.shadow.default};
+  cursor: pointer;
 `;
 
 export const Page = styled.main``;
 
 export const Row = styled.div`
   display: flex;
+  width: 100%;
   gap: ${(p) => p.theme.spacing.default};
   align-items: center;
   padding: ${(p) => p.theme.spacing.default} ${(p) => p.theme.spacing.md};

@@ -8,7 +8,7 @@ import {
   MarketRates,
   Standings,
 } from '@shared/types';
-import { defaultMarketRates, defaultPrices } from './game';
+import { defaultMarketRates, defaultPrices, defaultRevenue } from './game';
 import { Player } from './player';
 import { Prices } from './types';
 
@@ -26,6 +26,7 @@ export class Session {
   players: Player[] = [];
   turn: SessionTurn | undefined = undefined;
   started = false;
+  round = 0;
 
   adminToken: string;
   adminConnection: string;
@@ -103,9 +104,6 @@ export class Session {
   }
 
   join(socketId: string, playerName: string) {
-    if (this.started) {
-      throw new Error("Can't join a game that's already on-going");
-    }
     if (this.players.some((player) => player.name === playerName)) {
       console.info('Existing players:', this.players);
       throw new Error('Player name is already taken: ' + playerName);
@@ -173,16 +171,66 @@ export class Session {
     }
   }
 
-  nextTurn() {
+  updateEquity() {
+    this.players.forEach((player) => {
+      player.cash += defaultRevenue;
+    });
+
+    console.log('Updated equity', this.players);
+
+    this.marketRates = this.marketRates;
+  }
+
+  updatePrices() {
+    this.prices = this.prices;
+  }
+
+  nextTurn(
+    investments: Partial<Record<Company, number>> = {},
+    commodities: Commodity[] = [],
+  ) {
     if (!this.turn) {
       throw new Error("The game hasn't started yet");
     }
 
-    const {
-      player: { id: playerId },
-      index,
-    } = this.turn;
+    const { player, index } = this.turn;
+    const playerId = player.id;
 
+    const investmentCost = (
+      Object.entries(investments) as Array<[Company, number]>
+    ).reduce(
+      (acc, [company, count]) => acc + this.marketRates[company] * count,
+      0,
+    );
+
+    const commodityCost = commodities.reduce(
+      (acc, commodity) => acc + this.prices[commodity],
+      0,
+    );
+
+    // investment earnings can't be used for purchasing in the same round
+    if (Math.max(investmentCost, 0) + commodityCost > player.cash) {
+      throw new Error('Kusettaja paska :D');
+    }
+
+    (Object.entries(investments) as Array<[Company, number]>).forEach(
+      ([company, stockCount]) => {
+        player.investments[company] = Math.max(
+          0,
+          (player.investments[company] ?? 0) + stockCount,
+        );
+      },
+    );
+
+    commodities.forEach((commodity) => {
+      if (!player.commodities.includes(commodity)) {
+        player.commodities.push(commodity);
+      }
+    });
+
+    player.cash = player.cash - investmentCost - commodityCost;
+
+    // update turn
     let newIndex: number;
 
     if (this.players[index].id === playerId) {
@@ -193,8 +241,14 @@ export class Session {
       newIndex = (index + 1) % this.players.length;
     }
 
+    if (index === 0) {
+      this.updateEquity();
+    }
+
+    this.updatePrices();
+
     this.turn = { player: this.players[newIndex], index: newIndex };
 
-    return this;
+    return this.state;
   }
 }

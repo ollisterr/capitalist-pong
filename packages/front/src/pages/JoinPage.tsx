@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { socket } from "../config/socket.config";
+import storageUtils from "../utils/storage.utils";
 
 export const JoinPage = () => {
   const navigate = useNavigate();
@@ -11,6 +12,7 @@ export const JoinPage = () => {
 
   const handleSubmit: React.FormEventHandler<HTMLFormElement> = (e) => {
     e.preventDefault();
+    console.log(storageUtils.getUser());
     navigate(`/game/${gameId}`, { state: { playerName: nickname } });
   };
 

@@ -14,6 +14,7 @@ export const Button = styled.button`
   letter-spacing: 2px;
   box-shadow: ${(p) => p.theme.shadow.default};
   cursor: pointer;
+  ${(p) => p.disabled && "opacity: 0.5;"}
 `;
 
 export const Page = styled.main``;

@@ -59,13 +59,17 @@ export const AdminPage = () => {
     socket.emit(SocketRequest.START_GAME, { sessionId });
   };
 
+  const nextTurn = () => {
+    socket.emit(SocketRequest.NEXT_TURN, { investments: {}, commodities: [] });
+  };
+
   return (
     <Page>
       <NavBar />
 
       <Players />
 
-      {!gameState.started && <ConfirmButton onClick={startGame} />}
+      <ConfirmButton onClick={gameState.started ? nextTurn : startGame} />
     </Page>
   );
 };

@@ -1,13 +1,10 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
-import { ErrorMessages } from "@shared/error";
-
 import { socket } from "../config/socket.config";
 import { SocketMessage, SocketRequest } from "@shared/message";
 import { useAppState } from "../providers/AppStateProvider";
-import storageUtils from "../utils/storage.utils";
-import { Shop, NavBar, ConfirmButton, Dashboard, Players } from "../components";
+import { NavBar, Players } from "../components";
 import { GameView } from "../components/GameView";
 
 export const GamePage = () => {

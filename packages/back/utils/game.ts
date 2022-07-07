@@ -8,3 +8,5 @@ export const defaultPrices: Prices = {
 export const defaultMarketRates: MarketRates = {
   profitBoys: 20,
 };
+
+export const defaultRevenue = 200;

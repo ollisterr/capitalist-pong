@@ -63,8 +63,10 @@ io.on('connection', (socket) => {
   console.info('New connection', socket.id);
   console.info('Active sessions:', Object.values(getSessions()).length);
 
+  let session: Session | undefined;
+
   socket.on(SocketRequest.CREATE, ({ id }) => {
-    const session = createSession(id, socket.id);
+    session = createSession(id, socket.id);
 
     // update socket connection
     session.adminConnection = socket.id;
@@ -85,11 +87,24 @@ io.on('connection', (socket) => {
 
   socket.on(SocketRequest.JOIN, ({ sessionId, playerName, playerId }) => {
     console.info('Player', playerName, 'joining session', sessionId);
-    const session = getSession(sessionId);
 
-    if (!session) {
+    if (session) {
+      const sessionId = removePlayer(socket.id);
+      if (sessionId) {
+        socket.leave(sessionId);
+      }
+    }
+
+    session = getSession(sessionId);
+
+    if (
+      !session ||
+      (session.started &&
+        playerId &&
+        (!session.getPlayerById(playerId) || session.validateAdmin(playerId)))
+    ) {
       console.error(ErrorMessages.INVALID_SESSION, sessionId);
-      return invalidSession(socket, sessionId);
+      return invalidSession(socket);
     }
 
     if (playerId && session.validateAdmin(playerId)) {
@@ -146,16 +161,14 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on(SocketRequest.START_GAME, ({ sessionId }) => {
-    const session = getSession(sessionId);
-
+  socket.on(SocketRequest.START_GAME, () => {
     if (!session) {
-      console.error('Invalid Session ID', sessionId);
-      return invalidSession(socket, sessionId);
+      console.error('Invalid Session ID');
+      return invalidSession(socket);
     }
 
     if (!session.validateAdmin(socket.id)) {
-      console.error('Invalid admin token for session', sessionId);
+      console.error('Invalid admin token for session');
       return socket.emit(SocketMessage.ERROR, {
         type: ErrorMessages.NOT_ALLOWED,
       });
@@ -165,9 +178,32 @@ io.on('connection', (socket) => {
     sendSessionUpdate(session);
   });
 
+  socket.on(SocketRequest.NEXT_TURN, ({ investments, commodities }) => {
+    console.info('Switching turns');
+    if (!session) {
+      console.error('Invalid Session ID');
+      return invalidSession(socket);
+    }
+
+    const player = session.getPlayerByConnection(socket.id);
+
+    if (
+      !session.started ||
+      (session.started &&
+        player?.id !== session.turn?.player.id &&
+        session.adminConnection !== socket.id)
+    ) {
+      return socket.emit(SocketMessage.ERROR, {
+        message: "It's not your turn",
+      });
+    }
+
+    session.nextTurn(investments, commodities);
+    sendSessionUpdate(session);
+  });
+
   socket.once('disconnect', () => {
     const sessionId = removePlayer(socket.id);
-    const session = sessionId ? getSession(sessionId) : null;
 
     if (sessionId) {
       socket.leave(sessionId);

@@ -1,5 +1,5 @@
 import { ErrorMessages } from "./error";
-import { AdminGameState, Commodity, GameState, User } from "./types";
+import { AdminGameState, Commodity, Company, GameState, User } from "./types";
 
 export type WelcomeMessage = {
   user: User;
@@ -23,6 +23,7 @@ export enum SocketRequest {
   REJOIN = "rejoin",
   PURCHASE = "purchase",
   START_GAME = "start",
+  NEXT_TURN = "next",
   CREATE = "create",
 }
 
@@ -63,6 +64,10 @@ export interface ClientToServerEvents {
   [SocketRequest.REJOIN]: (payload: {
     sessionId: string;
     playerId: string;
+  }) => void;
+  [SocketRequest.NEXT_TURN]: (payload: {
+    investments: Partial<Record<Company, number>>;
+    commodities: Commodity[];
   }) => void;
   [SocketRequest.PURCHASE]: (commodity: Commodity) => void;
   [SocketRequest.CREATE]: (payload: { id: string }) => void;

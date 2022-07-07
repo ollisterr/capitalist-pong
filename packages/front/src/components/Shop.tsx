@@ -1,60 +1,84 @@
+import { useEffect, useState } from "react";
 import styled from "styled-components";
-
-import { commodities, Commodity, Company, Prices } from "@shared/types";
-import { Body, Button, Row, Title } from "../styles";
-import { useAppState } from "../providers/AppStateProvider";
-import { SocketRequest } from "@shared/message";
-import { socket } from "../config/socket.config";
 import { Stack } from "styled-layout";
 
-export const Shop = () => {
-  const { gameState } = useAppState();
+import { commodities, Commodity, companies, Company } from "@shared/types";
+import { Body, Button, Row, Title } from "../styles";
+import { isAdminState, useAppState } from "../providers/AppStateProvider";
 
-  if (!gameState) return null;
+export const Shop = () => {
+  const { gameState, canAfford, shoppingCart, invest, toggleCommodity } =
+    useAppState();
+
+  const { investments, commodities: items } = shoppingCart;
+
+  if (!gameState || isAdminState(gameState)) return null;
 
   const { prices, marketRates, state } = gameState;
 
-  const purchase = (commodity: Commodity) => {
-    socket.emit(SocketRequest.PURCHASE, commodity);
-  };
+  return (
+    <Stack spacing="xl">
+      <Stack>
+        <Title>Investments</Title>
 
-  return !Array.isArray(state) ? (
-    <Stack>
-      <Title>Investments</Title>
+        {(Object.entries(marketRates) as Array<[Company, number]>).map(
+          ([company, stockPrice]) => (
+            <InvestmentRow key={company}>
+              <Stack axis="x">
+                <Body bold>{company}</Body>
 
-      {(Object.entries(marketRates) as Array<[Company, number]>).map(
-        ([company, stockPrice]) => (
-          <InvestmentRow key={company}>
-            <Body bold>{company}</Body>
+                <Body>(${stockPrice} per share)</Body>
+              </Stack>
 
-            <Stack axis="x" spacing="default" align="center">
-              <Button>Less</Button>
+              <Stack axis="x" spacing="default" align="center">
+                <Button
+                  onClick={() => invest(company, -1)}
+                  disabled={
+                    (state.investments[company] ?? 0) <= 0 &&
+                    (investments[company] ?? 0) <= 0
+                  }
+                >
+                  Less
+                </Button>
 
-              <Body>
-                {state.investments[company]} (${stockPrice} per share)
-              </Body>
+                <Body>
+                  {state.investments[company]} ({investments[company] ?? 0})
+                </Body>
 
-              <Button>More</Button>
-            </Stack>
-          </InvestmentRow>
-        )
-      )}
+                <Button
+                  onClick={() => invest(company, 1)}
+                  disabled={!canAfford(stockPrice)}
+                >
+                  More
+                </Button>
+              </Stack>
+            </InvestmentRow>
+          )
+        )}
+      </Stack>
 
-      <Title>Items</Title>
+      <Stack>
+        <Title>Items</Title>
 
-      {(Object.entries(prices) as Array<[Commodity, number]>).map(
-        ([commodity, price]) => (
-          <CommodityRow key={commodity}>
-            <Body bold>{commodities[commodity]}</Body>
+        {(Object.entries(prices) as Array<[Commodity, number]>).map(
+          ([commodity, price]) => (
+            <CommodityRow key={commodity}>
+              <Body bold>{commodities[commodity]}</Body>
 
-            <Body>{price} €</Body>
+              <Body>{price} €</Body>
 
-            <Button onClick={() => purchase(commodity)}>BUY</Button>
-          </CommodityRow>
-        )
-      )}
+              <Button
+                onClick={() => toggleCommodity(commodity)}
+                disabled={!canAfford(price) && !items.includes(commodity)}
+              >
+                {items.includes(commodity) ? "REMOVE" : "BUY"}
+              </Button>
+            </CommodityRow>
+          )
+        )}
+      </Stack>
     </Stack>
-  ) : null;
+  );
 };
 
 const CommodityRow = styled(Row)`

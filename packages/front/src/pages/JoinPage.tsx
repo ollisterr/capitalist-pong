@@ -1,41 +1,52 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Spacer, Stack } from "styled-layout";
 
 import { useAppState } from "../providers/AppStateProvider";
+import { Button, Input, Label, Page, Link } from "../styles";
+import { SocketMessage, SocketRequest } from "@shared/message";
+import { socket } from "../config/socket.config";
 
 export const JoinPage = () => {
-  const navigate = useNavigate();
-
-  const { playerName, sessionId } = useAppState();
+  const { playerName, playerId, sessionId } = useAppState();
 
   const [gameId, setGameId] = useState(sessionId ?? "");
   const [nickname, setNickname] = useState(playerName ?? "");
 
   const handleSubmit: React.FormEventHandler<HTMLFormElement> = (e) => {
     e.preventDefault();
-    navigate(`/game/${gameId}`, { state: { playerName: nickname } });
+
+    socket.emit(SocketRequest.JOIN, {
+      sessionId: gameId,
+      playerName: nickname,
+      playerId: playerId ?? undefined,
+    });
   };
 
   return (
-    <div>
+    <Page>
       <form onSubmit={handleSubmit}>
-        <label>
-          Game ID:
-          <input value={gameId} onChange={(e) => setGameId(e.target.value)} />
-        </label>
+        <Stack>
+          <Label>
+            Game ID
+            <Input value={gameId} onChange={(e) => setGameId(e.target.value)} />
+          </Label>
 
-        <label>
-          Nickname:
-          <input
-            value={nickname}
-            onChange={(e) => setNickname(e.target.value)}
-          />
-        </label>
+          <Label>
+            Nickname
+            <Input
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+            />
+          </Label>
 
-        <button type="submit">Join</button>
+          <Button type="submit">Join</Button>
+        </Stack>
       </form>
 
+      <Spacer axis="y" size="xl" />
+
       <Link to="/create">Create game</Link>
-    </div>
+    </Page>
   );
 };

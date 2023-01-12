@@ -16,12 +16,14 @@ import {
   User,
 } from "@shared/types";
 import storageUtils from "../utils/storage.utils";
+import { SocketRequest, SocketMessage } from "@shared/message";
+import { socket } from "../config/socket.config";
 
 export const isAdminState = (
   state: AppContext["gameState"]
 ): state is AdminGameState => !!state && Array.isArray(state.state);
 
-interface AppContext {
+type AppContext = {
   playerId: string | null;
   playerName: string | null;
   setUser: (user: User) => void;
@@ -41,7 +43,7 @@ interface AppContext {
   toggleCommodity: (commodity: Commodity) => void;
   resetShoppingCart: () => void;
   canAfford: (x: number) => boolean;
-}
+};
 
 const AppContext = createContext<AppContext | null>(null);
 
@@ -68,14 +70,40 @@ export const AppStateProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const existingUser = storageUtils.getUser();
-    setUser(existingUser);
+    const existingSessionId = storageUtils.getSession();
+    const existingAdminToken = storageUtils.getAdminToken();
 
-    const existingSession = storageUtils.getSession();
-
-    if (existingSession) {
-      setSessionId(existingSession);
-      navigate(`/game/${existingSession}`);
+    // attempt to rejoin a session
+    if (existingSessionId && existingUser) {
+      socket.emit(SocketRequest.JOIN, {
+        sessionId: existingSessionId,
+        playerName: existingUser.name,
+        playerId: existingUser.id,
+      });
+    } else if (existingAdminToken && existingSessionId) {
+      socket.emit(SocketRequest.ADMIN_JOIN, {
+        sessionId: existingSessionId,
+        adminToken: existingAdminToken,
+      });
     }
+  }, []);
+
+  useEffect(() => {
+    socket.on(SocketMessage.WELCOME, ({ user, session }) => {
+      setUser(user);
+      setSessionId(session.id);
+      setGameState(session.state);
+      navigate(`/game/${session.id}`);
+    });
+
+    socket.on(SocketMessage.ADMIN_WELCOME, ({ user, session }) => {
+      setUser(user);
+      storageUtils.setAdminToken(user.id);
+      setSessionId(session.id);
+      setGameState(session.state);
+      // navigate to the newly created session admin view
+      navigate(`/admin/${session.id}`);
+    });
   }, []);
 
   const updateUser = (user: User | null) => {

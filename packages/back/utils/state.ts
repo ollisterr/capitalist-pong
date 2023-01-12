@@ -13,6 +13,7 @@ export const initStore = () => {
 
     sessions[id] = new Session(id, adminConnection);
 
+    console.info('Created new session:', id);
     return sessions[id];
   };
 

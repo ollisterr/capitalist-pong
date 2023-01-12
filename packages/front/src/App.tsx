@@ -1,5 +1,5 @@
 import { Route, Routes } from "react-router-dom";
-import { ThemeProvider } from "styled-components";
+import styled, { ThemeProvider } from "styled-components";
 import "react-toastify/dist/ReactToastify.css";
 import { ToastContainer } from "react-toastify";
 
@@ -10,27 +10,53 @@ import { AdminPage } from "./pages/AdminPage";
 import { AppStateProvider } from "./providers/AppStateProvider";
 import { theme } from "./styles/theme";
 import { useErrorHandling } from "./hooks";
+import { useEffect } from "react";
+import { socket } from "./config/socket.config";
+import { NavBar } from "./components";
+import { PageWrapper } from "./styles";
 
 function App() {
   useErrorHandling();
 
+  useEffect(() => {
+    socket.connect();
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
+
   return (
     <ThemeProvider theme={theme}>
       <AppStateProvider>
-        <Routes>
-          <Route path="/admin/:sessionId" element={<AdminPage />} />
+        <PageContainer>
+          <NavBar />
 
-          <Route path="/game/:sessionId" element={<GamePage />} />
+          <PageWrapper>
+            <Routes>
+              <Route path="/admin/:sessionId" element={<AdminPage />} />
 
-          <Route path="/create" element={<CreatePage />} />
+              <Route path="/game/:sessionId" element={<GamePage />} />
 
-          <Route path="/" element={<JoinPage />} />
-        </Routes>
+              <Route path="/create" element={<CreatePage />} />
+
+              <Route path="/" element={<JoinPage />} />
+            </Routes>
+          </PageWrapper>
+        </PageContainer>
 
         <ToastContainer position="bottom-right" pauseOnHover />
       </AppStateProvider>
     </ThemeProvider>
   );
 }
+
+export const PageContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  min-height: 100vh;
+  background-color: ${(p) => p.theme.colors.white};
+`;
 
 export default App;

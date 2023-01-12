@@ -1,7 +1,15 @@
 {
+  "name": "capitalist-pong",
   "private": true,
   "workspaces": [
     "packages/*"
   ],
-  "name": "capitalist-pong"
+  "scripts": {
+    "start": "concurrently 'npm run start:front' 'npm run start:back'",
+    "start:front": "cd packages/front && npm start",
+    "start:back": "cd packages/back && npm start"
+  },
+  "dependencies": {
+    "concurrently": "^7.6.0"
+  }
 }

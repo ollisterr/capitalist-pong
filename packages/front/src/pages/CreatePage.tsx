@@ -1,25 +1,23 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 
 import { SocketRequest } from "@shared/message";
 import { socket } from "../config/socket.config";
+import { Page } from "../styles";
 
 export const CreatePage = () => {
-  const navigate = useNavigate();
-
   const [gameId, setGameId] = useState("");
 
   const handleSubmit: React.FormEventHandler<HTMLFormElement> = (e) => {
     e.preventDefault();
 
     if (gameId.length > 3) {
-      navigate(`/admin/${gameId}`);
+      console.log("Creating session...");
       socket.emit(SocketRequest.CREATE, { id: gameId });
     }
   };
 
   return (
-    <div>
+    <Page>
       <form onSubmit={handleSubmit}>
         <label>
           Game ID:
@@ -28,6 +26,6 @@ export const CreatePage = () => {
 
         <button type="submit">Submit</button>
       </form>
-    </div>
+    </Page>
   );
 };

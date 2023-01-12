@@ -19,7 +19,7 @@ export const Shop = () => {
   return (
     <Stack spacing="xl">
       <Stack>
-        <Title>Investments</Title>
+        <Title labeled>Investments</Title>
 
         {(Object.entries(marketRates) as Array<[Company, number]>).map(
           ([company, stockPrice]) => (
@@ -58,7 +58,7 @@ export const Shop = () => {
       </Stack>
 
       <Stack>
-        <Title>Items</Title>
+        <Title labeled>Items</Title>
 
         {(Object.entries(prices) as Array<[Commodity, number]>).map(
           ([commodity, price]) => (

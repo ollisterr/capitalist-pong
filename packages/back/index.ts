@@ -68,8 +68,6 @@ io.on('connection', (socket) => {
   socket.on(SocketRequest.CREATE, ({ id }) => {
     session = createSession(id, socket.id);
 
-    // update socket connection
-    session.adminConnection = socket.id;
     // join room
     socket.join(session.id);
     // send welcome message
@@ -87,11 +85,7 @@ io.on('connection', (socket) => {
 
   socket.on(SocketRequest.JOIN, ({ sessionId, playerName, playerId }) => {
     console.info(
-      'Player',
-      playerName,
-      `(${playerId})`,
-      'joining session',
-      sessionId,
+      `Player ${playerName} (${playerId}) joining session ${sessionId}`,
     );
 
     if (session) {
@@ -100,19 +94,22 @@ io.on('connection', (socket) => {
       }
     }
 
-    session = getSession(sessionId);
+    const newSession = getSession(sessionId);
 
     if (
-      !session ||
-      (session.started &&
-        ((playerId && !session.getPlayerById(playerId)) ||
-          !session.validateAdmin(playerId || socket.id)))
+      !newSession ||
+      (newSession.started &&
+        playerId &&
+        !newSession.getPlayerById(playerId) &&
+        !newSession.validateAdmin(playerId || socket.id))
     ) {
       console.error(ErrorMessages.INVALID_SESSION, sessionId);
       return invalidSession(socket);
     }
 
-    if (playerId && session.validateAdmin(playerId)) {
+    session = newSession;
+
+    if (session.validateAdmin(playerId)) {
       // update socket connection
       session.adminConnection = socket.id;
       // join room
@@ -128,15 +125,18 @@ io.on('connection', (socket) => {
           state: session.adminState,
         },
       });
+
       sendAdminUpdate(session);
     } else {
       try {
         let player: Player | null = null;
+
         if (playerId) {
           player = session.rejoin(socket.id, playerId, playerName);
         }
 
         if (!player) {
+          console.info(`Adding ${playerName} to a session, connecting...`);
           player = session.join(socket.id, playerName);
         }
 

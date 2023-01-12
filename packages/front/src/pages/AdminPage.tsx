@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import { AdminGameState } from "@shared/types";
 import { SocketMessage, SocketRequest } from "@shared/message";
 
 import { socket } from "../config/socket.config";
@@ -10,22 +9,16 @@ import { useAppState } from "../providers/AppStateProvider";
 import { NavBar } from "../components/NavBar";
 import { Page } from "../styles";
 import { ConfirmButton, Players } from "../components";
+import { Spacer } from "styled-layout";
 
 export const AdminPage = () => {
   const params = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
 
-  const {
-    setUser,
-    setSessionId,
-    sessionId,
-    playerId,
-    setGameState,
-    gameState,
-  } = useAppState();
+  const { setSessionId, sessionId, playerId, setGameState, gameState } =
+    useAppState();
 
   useEffect(() => {
-    socket.connect();
     const adminToken = storageUtils.getAdminToken();
 
     if (!params.sessionId || !adminToken) {
@@ -35,20 +28,14 @@ export const AdminPage = () => {
     if (params.sessionId !== sessionId) {
       setSessionId(params.sessionId);
     }
+  }, []);
 
-    socket.on(SocketMessage.ADMIN_WELCOME, ({ user, session }) => {
-      setUser(user);
-      storageUtils.setAdminToken(user.id);
-      setSessionId(session.id);
-      setGameState(session.state);
-    });
-
+  useEffect(() => {
     socket.on(SocketMessage.ADMIN_UPDATE, setGameState);
 
     return () => {
       socket.off(SocketMessage.ADMIN_UPDATE);
       socket.off(SocketMessage.ADMIN_WELCOME);
-      socket.disconnect();
     };
   }, [params.sessionId]);
 
@@ -65,9 +52,9 @@ export const AdminPage = () => {
 
   return (
     <Page>
-      <NavBar />
-
       <Players />
+
+      <Spacer size="xl" />
 
       <ConfirmButton onClick={gameState.started ? nextTurn : startGame} />
     </Page>

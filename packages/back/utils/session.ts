@@ -73,16 +73,19 @@ export class Session {
     };
   }
 
-  validateAdmin(token: string) {
+  validateAdmin(token?: string): token is string {
     return (
-      this.adminToken === token ||
-      (!!this.adminConnection && this.adminConnection === token)
+      !!token &&
+      (this.adminToken === token ||
+        (!!this.adminConnection && this.adminConnection === token))
     );
   }
 
   rejoin(socketId: string, playerId: string, playerName?: string) {
     const player =
       this.getPlayerById(playerId) ?? this.getPlayerByConnection(socketId);
+
+    console.log(this.players, player);
 
     if (!player) {
       return null;
@@ -97,12 +100,17 @@ export class Session {
       player.offline = false;
       clearTimeout(this.removeQueue[playerId]);
     }
+
     player.updateConnection(socketId);
+
+    console.info(`${playerName} rejoined session:`, player);
 
     return player;
   }
 
   join(socketId: string, playerName: string) {
+    console.log(this.players);
+
     if (this.players.some((player) => player.name === playerName)) {
       console.info('Existing players:', this.players);
       throw new Error('Player name is already taken: ' + playerName);
@@ -170,6 +178,7 @@ export class Session {
     }
   }
 
+  // TODO
   updateEquity() {
     this.players.forEach((player) => {
       player.cash += defaultRevenue;
@@ -177,11 +186,12 @@ export class Session {
 
     console.log('Updated equity', this.players);
 
-    this.marketRates = this.marketRates;
+    return;
   }
 
+  // TODO
   updatePrices() {
-    this.prices = this.prices;
+    return;
   }
 
   nextTurn(

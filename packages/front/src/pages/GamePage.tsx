@@ -1,21 +1,21 @@
 import { useEffect } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+
+import { SocketMessage } from "@shared/message";
 
 import { socket } from "../config/socket.config";
-import { SocketMessage, SocketRequest } from "@shared/message";
 import { useAppState } from "../providers/AppStateProvider";
 import { NavBar, Players } from "../components";
 import { GameView } from "../components/GameView";
+import { Page, PageWrapper } from "../styles";
+import { GameStateHeader } from "../components/GameStateHeader";
 
 export const GamePage = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const params = useParams<{ sessionId: string }>();
 
   const {
     playerId,
-    playerName,
-    setUser,
     sessionId,
     setSessionId,
     gameState,
@@ -24,7 +24,8 @@ export const GamePage = () => {
   } = useAppState();
 
   useEffect(() => {
-    if (!params.sessionId) {
+    // navigate to front page if the session is invalid
+    if (!params.sessionId || !playerId) {
       return navigate("/");
     }
 
@@ -32,50 +33,27 @@ export const GamePage = () => {
       setSessionId(params.sessionId);
     }
 
-    if ((location.state as any)?.playerName || playerId) {
-      socket.emit(SocketRequest.JOIN, {
-        sessionId: params.sessionId,
-        playerName: (location.state as any)?.playerName ?? playerName,
-        playerId: playerId ?? undefined,
-      });
-    } else {
-      navigate("/");
+    if (isAdmin) {
+      return navigate(`/admin/${sessionId}`);
     }
   }, [sessionId, params.sessionId]);
 
   useEffect(() => {
-    socket.connect();
-
-    socket.on(SocketMessage.WELCOME, ({ user, session }) => {
-      setUser(user);
-      setSessionId(session.id);
-      setGameState(session.state);
-    });
-
     socket.on(SocketMessage.UPDATE, setGameState);
 
     return () => {
       socket.off(SocketMessage.UPDATE);
       socket.off(SocketMessage.WELCOME);
-      socket.disconnect();
     };
   }, []);
-
-  useEffect(() => {
-    if (!sessionId) return;
-
-    if (isAdmin) {
-      return navigate(`/admin/${sessionId}`);
-    }
-  }, [isAdmin, sessionId]);
 
   if (!gameState) return null;
 
   return (
-    <div>
-      <NavBar />
+    <Page>
+      {gameState.started && <GameStateHeader />}
 
       {gameState.started ? <GameView /> : <Players />}
-    </div>
+    </Page>
   );
 };
